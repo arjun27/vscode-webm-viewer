@@ -1,6 +1,6 @@
 {
-	"name": "vscode-webm-viewer",
-	"displayName": "vscode-webm-viewer",
+	"name": "webm-viewer",
+	"displayName": "webm-viewer",
 	"description": "",
 	"version": "0.0.1",
 	"engines": {
@@ -10,16 +10,29 @@
 		"Other"
 	],
 	"activationEvents": [
-		"onCommand:vscode-webm-viewer.helloWorld"
+		"onCommand:webm-viewer.helloWorld",
+		"onCustomEditor:webm-viewer.webmViewer"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
 		"commands": [
 			{
-				"command": "vscode-webm-viewer.helloWorld",
+				"command": "webm-viewer.helloWorld",
 				"title": "Hello World"
 			}
-		]
+		],
+		"customEditors": [
+			{
+			  "viewType": "webm-viewer.webmViewer",
+			  "displayName": "WebM Viewer",
+			  "selector": [
+				{
+				  "filenamePattern": "*.webm"
+				}
+			  ],
+			  "priority": "default"
+			}
+		  ]
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
