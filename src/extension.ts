@@ -15,6 +15,7 @@ class WebmDocument implements vscode.CustomDocument {
 	}
 
 	public get uri() { return this._uri; }
+	public get documentData(): Uint8Array { return this._documentData; }
 
 	static async create(
 		uri: vscode.Uri,
@@ -78,32 +79,37 @@ class WebmEditorProvider implements vscode.CustomReadonlyEditorProvider {
 		return document;
 	}
 
-	resolveCustomEditor(document: vscode.CustomDocument,
+	resolveCustomEditor(document: WebmDocument,
 						webviewPanel: vscode.WebviewPanel,
 						token: vscode.CancellationToken): void | Thenable<void> {
 		console.log('here 2');
 		this.webviews.add(document.uri, webviewPanel);
 		webviewPanel.webview.options = {
 			enableScripts: true,
+			localResourceRoots: [vscode.Uri.file(path.join(this.context.extensionPath, 'media'))]
 		};
 		webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview);
 
 		// webviewPanel.webview.onDidReceiveMessage(e => this.onMessage(document, e));
 
 		// Wait for the webview to be properly ready before we init
-		// webviewPanel.webview.onDidReceiveMessage(e => {
-		// 	if (e.type === 'ready') {
-		// 		if (document.uri.scheme === 'untitled') {
-		// 			this.postMessage(webviewPanel, 'init', {
-		// 				untitled: true
-		// 			});
-		// 		} else {
-		// 			this.postMessage(webviewPanel, 'init', {
-		// 				value: document.documentData
-		// 			});
-		// 		}
-		// 	}
-		// });
+		webviewPanel.webview.onDidReceiveMessage(e => {
+			if (e.type === 'ready') {
+				if (document.uri.scheme === 'untitled') {
+					this.postMessage(webviewPanel, 'init', {
+						untitled: true
+					});
+				} else {
+					this.postMessage(webviewPanel, 'init', {
+						value: document.documentData
+					});
+				}
+			}
+		});
+	}
+
+	private postMessage(panel: vscode.WebviewPanel, type: string, body: any): void {
+		panel.webview.postMessage({ type, body });
 	}
 
 	private getHtmlForWebview(webview: vscode.Webview): string {
@@ -113,6 +119,9 @@ class WebmEditorProvider implements vscode.CustomReadonlyEditorProvider {
 		));
 		const styleUri = webview.asWebviewUri(vscode.Uri.file(
 			path.join(this.context.extensionPath, 'media', 'webview.css')
+		));
+		const video = webview.asWebviewUri(vscode.Uri.file(
+			path.join(this.context.extensionPath, 'media', 'big-buck-bunny_trailer.webm')
 		));
 
 		// Use a nonce to whitelist which scripts can be run
@@ -127,13 +136,14 @@ class WebmEditorProvider implements vscode.CustomReadonlyEditorProvider {
 				Use a content security policy to only allow loading images from https or from our extension directory,
 				and only allow scripts that have a specific nonce.
 				-->
-				<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} blob:; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
+				<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} blob:; style-src ${webview.cspSource}; media-src * data: blob: 'unsafe-inline' ${webview.cspSource}; script-src 'nonce-${nonce}';">
 				<meta name="viewport" content="width=device-width, initial-scale=1.0">
 				<link href="${styleUri}" rel="stylesheet" />
 				<title>Paw Draw</title>
 			</head>
 			<body>
 				<div class="drawing-canvas">hello!!!</div>
+				<video><source src="${video}" type="video/webm"></video>
 				<script nonce="${nonce}" src="${scriptUri}"></script>
 			</body>
 			</html>`;
